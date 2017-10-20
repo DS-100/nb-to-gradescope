@@ -1,0 +1,13 @@
+.PHONY: help build publish install
+
+help:
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+build: ## Build python package
+	python3 setup.py bdist_wheel
+
+publish: build ## Publish gs100 to PyPi
+	twine upload dist/*
+
+install: ## Installs package locally
+	pip3 install -e .

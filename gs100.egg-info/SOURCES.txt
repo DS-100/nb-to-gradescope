@@ -1,0 +1,13 @@
+LICENSE.txt
+MANIFEST.in
+Makefile
+README.md
+setup.cfg
+setup.py
+gs100/__init__.py
+gs100/converter.py
+gs100.egg-info/PKG-INFO
+gs100.egg-info/SOURCES.txt
+gs100.egg-info/dependency_links.txt
+gs100.egg-info/requires.txt
+gs100.egg-info/top_level.txt

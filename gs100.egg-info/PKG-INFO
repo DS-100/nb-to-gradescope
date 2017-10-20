@@ -1,0 +1,40 @@
+Metadata-Version: 1.1
+Name: gs100
+Version: 0.0.1
+Summary: Converts a notebook with student written answers to a PDF for Gradescope.
+Home-page: https://github.com/DS-100/nb-to-gradescope
+Author: Sam Lau
+Author-email: samlau95@gmail.com
+License: BSD 3-Clause
+Description-Content-Type: UNKNOWN
+Description: DS100 Notebook to Gradescope Exporter
+        =====================================
+        
+        Converts a notebook with student written answers to a PDF for Gradescope.
+        Ensures that each question has a constant number of pages.
+        
+        ## Getting Started
+        
+        ```
+        pip install gs100
+        ```
+        
+        In Python:
+        
+        ```python
+        from gs100 import convert
+        # The num_questions argument is the number of written questions to grade.
+        # It's optional but recommend to help students debug their notebook
+        convert('some_notebook.ipynb', num_questions=10)
+        ```
+        
+Keywords: jupyter ds100 gradescope
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Framework :: Jupyter
