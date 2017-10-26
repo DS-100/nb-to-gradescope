@@ -22,26 +22,39 @@ DEFAULT_PAGES_PER_Q = 2
 # Tags on cells that need to get exported
 TAGS = ['written', 'student']
 
+# Tags on solution cells that need to get exported
+SOL_TAGS = ['written', 'solution']
+
 WKHTMLTOPDF_URL = 'https://github.com/JazzCore/python-pdfkit/wiki/Installing-wkhtmltopdf'  # noqa: E501
 
 
-def convert(filename, num_questions=None, pages_per_q=DEFAULT_PAGES_PER_Q,
-            folder='question_pdfs', output='gradescope.pdf'):
+def convert(filename,
+            num_questions=None,
+            solution=False,
+            pages_per_q=DEFAULT_PAGES_PER_Q,
+            folder='question_pdfs',
+            output='gradescope.pdf'):
     """
     Public method that exports nb to PDF and pads all the questions.
 
     If num_questions is specified, will also check the final PDF for missing
     questions.
+
+    If solution=True, we'll export solution cells instead of student cells. Use
+    this option to generate the solutions to upload to Gradescope.
     """
     check_for_wkhtmltohtml()
     save_notebook(filename)
 
-    nb = read_nb(filename)
-    pdf_names = create_question_pdfs(nb, pages_per_q=pages_per_q,
+    nb = read_nb(filename, solution=solution)
+    pdf_names = create_question_pdfs(nb,
+                                     pages_per_q=pages_per_q,
                                      folder=folder)
     merge_pdfs(pdf_names, output)
 
-    if num_questions is not None and len(pdf_names) != num_questions:
+    # The first pdf generated is the email PDF
+    n_questions_found = len(pdf_names) - 1
+    if num_questions is not None and n_questions_found != num_questions:
         logging.warning(
             'We expected there to be {} questions but there are only {} in '
             'your final PDF. Gradescope will most likely not accept your '
@@ -112,17 +125,39 @@ def wait_for_save(filename, timeout=5):
     return False
 
 
-def cell_has_tags(cell) -> bool:
+def find_student_email(nb) -> str:
+    '''
+    Looks for the OkPy-generated string:
+
+    "Successfully logged in as <email>"
+
+    and returns the email address.
+
+    Raises a ValueError if email not found.
+    '''
+    search = 'Successfully logged in as '
+
+    cells = [cell for cell in nb.cells if 'outputs' in cell]
+    for cell in cells:
+        for output in cell.outputs:
+            if 'text' in output and search in output.text:
+                return output.text.split(search)[1].strip()
+    raise ValueError('Error: was not able to get email from ok.auth() cell.'
+                     'Please run that cell and try again.')
+
+
+def cell_has_tags(cell, tags_to_check) -> bool:
     return ('tags' in cell.metadata
-            and all(tag in cell.metadata.tags for tag in TAGS))
+            and all(tag in cell.metadata.tags for tag in tags_to_check))
 
 
 def remove_input(cell) -> nbformat.NotebookNode:
-    cell.source = 'output:'
+    if cell.cell_type == 'code':
+        cell.source = 'output:'
     return cell
 
 
-def read_nb(filename) -> nbformat.NotebookNode:
+def read_nb(filename, solution) -> nbformat.NotebookNode:
     """
     Takes in a filename of a notebook and returns a notebook object containing
     only the cell outputs to export.
@@ -130,8 +165,14 @@ def read_nb(filename) -> nbformat.NotebookNode:
     with open(filename, 'r') as f:
         nb = nbformat.read(f, as_version=4)
 
-    cells = [remove_input(cell) for cell in nb['cells']
-             if cell_has_tags(cell)]
+    email = find_student_email(nb)
+    preamble = nbformat.v4.new_markdown_cell(
+        source='# ' + email, metadata={'tags': ['q_email']})
+
+    tags_to_check = TAGS if not solution else SOL_TAGS
+    cells = ([preamble] +
+             [remove_input(cell) for cell in nb['cells']
+              if cell_has_tags(cell, tags_to_check)])
 
     nb['cells'] = cells
     return nb
