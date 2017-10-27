@@ -10,19 +10,17 @@ from toolz.curried import first, filter
 import logging
 import nbformat
 import os
-import pdfkit
 import PyPDF2
 import subprocess
 import sys
 import time
+import weasyprint
 
 # Default number of pages per question
 DEFAULT_PAGES_PER_Q = 2
 
 # Tags on cells that need to get exported
 TAGS = ['written', 'student']
-
-WKHTMLTOPDF_URL = 'https://github.com/JazzCore/python-pdfkit/wiki/Installing-wkhtmltopdf'  # noqa: E501
 
 
 def convert(filename, num_questions=None, pages_per_q=DEFAULT_PAGES_PER_Q,
@@ -33,7 +31,6 @@ def convert(filename, num_questions=None, pages_per_q=DEFAULT_PAGES_PER_Q,
     If num_questions is specified, will also check the final PDF for missing
     questions.
     """
-    check_for_wkhtmltohtml()
     save_notebook(filename)
 
     nb = read_nb(filename)
@@ -57,25 +54,6 @@ def convert(filename, num_questions=None, pages_per_q=DEFAULT_PAGES_PER_Q,
 ##############################################################################
 # Private methods
 ##############################################################################
-
-def check_for_wkhtmltohtml():
-    """
-    Checks to see if the wkhtmltohtml binary is installed. Raises error if not.
-    """
-    locator = 'where' if sys.platform == 'win32' else 'which'
-
-    wkhtmltopdf = (subprocess.Popen([locator, 'wkhtmltopdf'],
-                                    stdout=subprocess.PIPE)
-                   .communicate()[0].strip())
-
-    if not os.path.exists(wkhtmltopdf):
-        logging.error(
-            'No wkhtmltopdf executable found. Please install '
-            'wkhtmltopdf before trying again - {}'.format(WKHTMLTOPDF_URL))
-        raise ValueError(
-            'No wkhtmltopdf executable found. Please install '
-            'wkhtmltopdf before trying again - {}'.format(WKHTMLTOPDF_URL))
-
 
 # This function is stolen from ok-client
 def save_notebook(filename):
@@ -187,21 +165,6 @@ def pad_pdf_pages(pdf_name, pages_per_q) -> None:
         output.write(out_file)
 
 
-# Options to pass into pdfkit
-PDF_OPTS = {
-    'page-size': 'Letter',
-    'margin-top': '0.25in',
-    'margin-right': '0.25in',
-    'margin-bottom': '0.25in',
-    'margin-left': '0.25in',
-    'encoding': "UTF-8",
-
-    'zoom': 4,
-
-    'quiet': '',
-}
-
-
 def create_question_pdfs(nb, pages_per_q, folder) -> list:
     """
     Converts each cells in tbe notebook to a PDF named something like
@@ -218,7 +181,7 @@ def create_question_pdfs(nb, pages_per_q, folder) -> list:
         # Create question PDFs
         pdf_name = os.path.join(folder, '{}.pdf'.format(question))
 
-        pdfkit.from_string(cell.prettify(), pdf_name, options=PDF_OPTS)
+        weasyprint.HTML(string=cell.prettify()).write_pdf(pdf_name)
 
         pad_pdf_pages(pdf_name, pages_per_q)
 
