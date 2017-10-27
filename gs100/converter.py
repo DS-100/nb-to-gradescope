@@ -95,11 +95,6 @@ def cell_has_tags(cell) -> bool:
             and all(tag in cell.metadata.tags for tag in TAGS))
 
 
-def remove_input(cell) -> nbformat.NotebookNode:
-    cell.source = 'output:'
-    return cell
-
-
 def read_nb(filename) -> nbformat.NotebookNode:
     """
     Takes in a filename of a notebook and returns a notebook object containing
@@ -108,8 +103,7 @@ def read_nb(filename) -> nbformat.NotebookNode:
     with open(filename, 'r') as f:
         nb = nbformat.read(f, as_version=4)
 
-    cells = [remove_input(cell) for cell in nb['cells']
-             if cell_has_tags(cell)]
+    cells = [cell for cell in nb['cells'] if cell_has_tags(cell)]
 
     nb['cells'] = cells
     return nb
