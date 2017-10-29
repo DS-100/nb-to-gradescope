@@ -14,7 +14,6 @@ import PyPDF2
 import subprocess
 import sys
 import time
-import weasyprint
 
 # Default number of pages per question
 DEFAULT_PAGES_PER_Q = 2
@@ -22,20 +21,47 @@ DEFAULT_PAGES_PER_Q = 2
 # Tags on cells that need to get exported
 TAGS = ['written', 'student']
 
+WKHTMLTOPDF_URL = 'https://github.com/JazzCore/python-pdfkit/wiki/Installing-wkhtmltopdf'  # noqa: E501
+
+def pdfkit_writer(path, content) -> None:
+    import pdfkit
+    pdfkit.from_string(content, path, options={
+        'page-size': 'Letter',
+        'margin-top': '0.25in',
+        'margin-right': '0.25in',
+        'margin-bottom': '0.25in',
+        'margin-left': '0.25in',
+        'encoding': "UTF-8",
+        'zoom': 4,
+        'quiet': '',
+        })
+
+def weasyprint_writer(path, content) -> None:
+    import weasyprint
+    weasyprint.HTML(string=content).write_pdf(path)
+
+# PDF writer utilities
+WRITERS = {
+        'pdfkit': pdfkit_writer,
+        'weasyprint': weasyprint_writer,
+        }
+
 
 def convert(filename, num_questions=None, pages_per_q=DEFAULT_PAGES_PER_Q,
-            folder='question_pdfs', output='gradescope.pdf'):
+            folder='question_pdfs', output='gradescope.pdf', writer='pdfkit'):
     """
     Public method that exports nb to PDF and pads all the questions.
 
     If num_questions is specified, will also check the final PDF for missing
     questions.
     """
+    if writer == 'pdfkit':
+        check_for_wkhtmltopdf()
     save_notebook(filename)
 
     nb = read_nb(filename)
     pdf_names = create_question_pdfs(nb, pages_per_q=pages_per_q,
-                                     folder=folder)
+                                     folder=folder, writer=WRITERS[writer])
     merge_pdfs(pdf_names, output)
 
     if num_questions is not None and len(pdf_names) != num_questions:
@@ -54,6 +80,25 @@ def convert(filename, num_questions=None, pages_per_q=DEFAULT_PAGES_PER_Q,
 ##############################################################################
 # Private methods
 ##############################################################################
+
+def check_for_wkhtmltopdf():
+    """
+    Checks to see if the wkhtmltopdf binary is installed. Raises error if not.
+    """
+    locator = 'where' if sys.platform == 'win32' else 'which'
+
+    wkhtmltopdf = (subprocess.Popen([locator, 'wkhtmltopdf'],
+                                    stdout=subprocess.PIPE)
+                   .communicate()[0].strip())
+
+    if not os.path.exists(wkhtmltopdf):
+        logging.error(
+            'No wkhtmltopdf executable found. Please install '
+            'wkhtmltopdf before trying again - {}'.format(WKHTMLTOPDF_URL))
+        raise ValueError(
+            'No wkhtmltopdf executable found. Please install '
+            'wkhtmltopdf before trying again - {}'.format(WKHTMLTOPDF_URL))
+
 
 # This function is stolen from ok-client
 def save_notebook(filename):
@@ -159,7 +204,7 @@ def pad_pdf_pages(pdf_name, pages_per_q) -> None:
         output.write(out_file)
 
 
-def create_question_pdfs(nb, pages_per_q, folder) -> list:
+def create_question_pdfs(nb, pages_per_q, folder, writer) -> list:
     """
     Converts each cells in tbe notebook to a PDF named something like
     'q04c.pdf'. Places PDFs in the specified folder and returns the list of
@@ -175,7 +220,7 @@ def create_question_pdfs(nb, pages_per_q, folder) -> list:
         # Create question PDFs
         pdf_name = os.path.join(folder, '{}.pdf'.format(question))
 
-        weasyprint.HTML(string=cell.prettify()).write_pdf(pdf_name)
+        writer(pdf_name, cell.prettify())
 
         pad_pdf_pages(pdf_name, pages_per_q)
 
