@@ -27,6 +27,11 @@ SOL_TAGS = ['written', 'solution']
 
 WKHTMLTOPDF_URL = 'https://github.com/JazzCore/python-pdfkit/wiki/Installing-wkhtmltopdf'  # noqa: E501
 
+DOWNLOAD_HTML = (
+    '<a href="./gradescope.ipynb" target="_blank">Done! Click this link to '
+    'download the pdf. Upload this PDF to Gradescope for grading.</a>'
+)
+
 
 def convert(filename,
             num_questions=None,
@@ -68,13 +73,18 @@ def convert(filename,
             .format(num_questions, len(pdf_names))
         )
 
-    print('Done! The resulting PDF is located in this directory and is called '
-          '{}. Upload that PDF to Gradescope for grading.'.format(output))
-    print()
+    try:
+        from IPython.display import display, HTML
+        display(HTML(DOWNLOAD_HTML))
+    except ImportError:
+        print('Done! The resulting PDF is located in this directory and is '
+              'called {}. Upload that PDF to Gradescope for grading.'
+              .format(output))
+        print()
 
     print('If the font size of your PDF is too small/large, change the value '
-          'of the zoom argument when calling convert. Setting zoom=2 makes '
-          'everything twice as big.')
+          'of the zoom argument when calling convert. For example, setting '
+          'zoom=2 makes everything twice as big.')
 
 
 ##############################################################################
