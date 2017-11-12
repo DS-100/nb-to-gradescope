@@ -33,12 +33,16 @@ def convert(filename,
             solution=False,
             pages_per_q=DEFAULT_PAGES_PER_Q,
             folder='question_pdfs',
-            output='gradescope.pdf'):
+            output='gradescope.pdf',
+            zoom=1):
     """
     Public method that exports nb to PDF and pads all the questions.
 
     If num_questions is specified, will also check the final PDF for missing
     questions.
+
+    If the output font size is too small/large, increase or decrease the zoom
+    argument until the size looks correct.
 
     If solution=True, we'll export solution cells instead of student cells. Use
     this option to generate the solutions to upload to Gradescope.
@@ -49,7 +53,8 @@ def convert(filename,
     nb = read_nb(filename, solution=solution)
     pdf_names = create_question_pdfs(nb,
                                      pages_per_q=pages_per_q,
-                                     folder=folder)
+                                     folder=folder,
+                                     zoom=zoom)
     merge_pdfs(pdf_names, output)
 
     # The first pdf generated is the email PDF
@@ -65,6 +70,11 @@ def convert(filename,
 
     print('Done! The resulting PDF is located in this directory and is called '
           '{}. Upload that PDF to Gradescope for grading.'.format(output))
+    print()
+
+    print('If the font size of your PDF is too small/large, change the value '
+          'of the zoom argument when calling convert. Setting zoom=2 makes '
+          'everything twice as big.')
 
 
 ##############################################################################
@@ -237,13 +247,13 @@ PDF_OPTS = {
     'margin-left': '0.25in',
     'encoding': "UTF-8",
 
-    'zoom': 4,
-
     'quiet': '',
 }
 
+ZOOM_FACTOR = 4
 
-def create_question_pdfs(nb, pages_per_q, folder) -> list:
+
+def create_question_pdfs(nb, pages_per_q, folder, zoom) -> list:
     """
     Converts each cells in tbe notebook to a PDF named something like
     'q04c.pdf'. Places PDFs in the specified folder and returns the list of
@@ -254,12 +264,15 @@ def create_question_pdfs(nb, pages_per_q, folder) -> list:
 
     os.makedirs(folder, exist_ok=True)
 
+    pdf_options = PDF_OPTS.copy()
+    pdf_options['zoom'] = ZOOM_FACTOR * zoom
+
     pdf_names = []
     for question, cell in zip(q_nums, html_cells):
         # Create question PDFs
         pdf_name = os.path.join(folder, '{}.pdf'.format(question))
 
-        pdfkit.from_string(cell.prettify(), pdf_name, options=PDF_OPTS)
+        pdfkit.from_string(cell.prettify(), pdf_name, options=pdf_options)
 
         pad_pdf_pages(pdf_name, pages_per_q)
 
