@@ -28,7 +28,7 @@ SOL_TAGS = ['written', 'solution']
 WKHTMLTOPDF_URL = 'https://github.com/JazzCore/python-pdfkit/wiki/Installing-wkhtmltopdf'  # noqa: E501
 
 DOWNLOAD_HTML = (
-    '<a href="./gradescope.ipynb" target="_blank">Done! Click this link to '
+    '<a href="./{}" target="_blank">Done! Click this link to '
     'download the pdf. Upload this PDF to Gradescope for grading.</a>'
 )
 
@@ -75,7 +75,7 @@ def convert(filename,
 
     try:
         from IPython.display import display, HTML
-        display(HTML(DOWNLOAD_HTML))
+        display(HTML(DOWNLOAD_HTML.format(output)))
     except ImportError:
         print('Done! The resulting PDF is located in this directory and is '
               'called {}. Upload that PDF to Gradescope for grading.'
